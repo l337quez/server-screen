@@ -38,8 +38,24 @@ static lv_color_t buf2[SCR_W * 4];
 lv_obj_t *scr_main;
 volatile unsigned long lastTouchTime = 0;
 
-// --- INSPECTOR IMAGE DEFINITION ---
-extern "C" const lv_img_dsc_t inspector_pixel;
+// --- CUSTOM FONTS ---
+LV_FONT_DECLARE(lv_font_minecraftia_16);
+
+// --- IMAGE DEFINITIONS ---
+extern "C" const lv_img_dsc_t inspector_pixel_invert_only;
+extern "C" const uint16_t sprite_lawyer[];
+
+const lv_img_dsc_t img_lawyer_dsc = {
+  {
+    LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED, // cf
+    0, // always_zero/magic
+    0, // reserved
+    111, // w
+    200 // h
+  },
+  22200 * 2, // data_size
+  (const uint8_t *)sprite_lawyer // data
+};
 
 // RGB LED Control
 void setLED(bool red, bool green, bool blue) {
@@ -90,10 +106,56 @@ void create_ui() {
   // Disable scrolling on main screen to prevent scroll gestures / scrollbars
   lv_obj_clear_flag(scr_main, LV_OBJ_FLAG_SCROLLABLE);
 
-  // 1. Render the Inspector image on the left side of the screen
-  lv_obj_t *img_inspector = lv_img_create(scr_main);
-  lv_img_set_src(img_inspector, &inspector_pixel);
-  lv_obj_align(img_inspector, LV_ALIGN_LEFT_MID, 20, 0);
+  // 1. Render the character image on the left side of the screen (Click to toggle Inspector / Lawyer)
+  lv_obj_t *img_character = lv_img_create(scr_main);
+  lv_img_set_src(img_character, &inspector_pixel_invert_only);
+  lv_obj_align(img_character, LV_ALIGN_LEFT_MID, 5, -20);
+  lv_obj_add_flag(img_character, LV_OBJ_FLAG_CLICKABLE);
+
+  // 2. Character Name and Title Label underneath the character image
+  static lv_obj_t *lbl_char_name = lv_label_create(scr_main);
+  lv_obj_set_style_text_font(lbl_char_name, &lv_font_minecraftia_16, 0);
+  lv_obj_set_style_text_color(lbl_char_name, lv_color_hex(0x000000), 0); // Shows as white on inverted CYD
+  lv_label_set_text(lbl_char_name, "Dupin\nInspector");
+  lv_obj_set_style_text_align(lbl_char_name, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align_to(lbl_char_name, img_character, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+
+  // 3. Dialogue Bubble / Message Label next to the character image
+  static lv_obj_t *lbl_char_msg = lv_label_create(scr_main);
+  lv_obj_set_style_text_font(lbl_char_msg, &lv_font_minecraftia_16, 0);
+  lv_obj_set_style_text_color(lbl_char_msg, lv_color_hex(0x000000), 0); // Shows as white on inverted CYD
+  lv_label_set_text(lbl_char_msg, "I found new test\nin the investigation");
+  lv_obj_set_width(lbl_char_msg, 160); // Wrap text nicely
+  lv_obj_set_style_text_align(lbl_char_msg, LV_TEXT_ALIGN_LEFT, 0);
+  lv_obj_align_to(lbl_char_msg, img_character, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+
+  static bool show_lawyer = false;
+  lv_obj_add_event_cb(img_character, [](lv_event_t *e) {
+    lv_obj_t *img = lv_event_get_target(e);
+    show_lawyer = !show_lawyer;
+    if (show_lawyer) {
+      lv_img_set_src(img, &img_lawyer_dsc);
+      lv_obj_align(img, LV_ALIGN_LEFT_MID, 15, -15);
+      
+      lv_label_set_text(lbl_char_name, "Jace\nLawyer");
+      lv_label_set_text(lbl_char_msg, "We was winning\nthis case");
+      
+      // Re-align labels for new lawyer sprite boundaries
+      lv_obj_align_to(lbl_char_name, img, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+      lv_obj_align_to(lbl_char_msg, img, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+      Serial.println("[UI] Toggled character to: Lawyer (Jace)");
+    } else {
+      lv_img_set_src(img, &inspector_pixel_invert_only);
+      lv_obj_align(img, LV_ALIGN_LEFT_MID, 5, -20);
+      
+      lv_label_set_text(lbl_char_name, "Dupin\nInspector");
+      lv_label_set_text(lbl_char_msg, "I found new test\nin the investigation");
+      
+      lv_obj_align_to(lbl_char_name, img, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+      lv_obj_align_to(lbl_char_msg, img, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+      Serial.println("[UI] Toggled character to: Inspector (Dupin)");
+    }
+  }, LV_EVENT_CLICKED, NULL);
 
   // 2. Settings button at bottom-left in the exact same position as reference project
   lv_obj_t *btn_gear = lv_btn_create(scr_main);
