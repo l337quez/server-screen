@@ -4,6 +4,7 @@
 
 lv_obj_t *scr_settings;
 lv_obj_t *tabview;
+lv_obj_t *tab_agents;
 
 void create_settings_ui() {
   // 1. Create the Settings Screen
@@ -12,7 +13,10 @@ void create_settings_ui() {
   // 2. Create Tabview (Tabs at the top, height 40)
   tabview = lv_tabview_create(scr_settings, LV_DIR_TOP, 40);
 
-  // 3. Add only the "System" Tab as requested by the user
+  // 3. Add the "Agents" tab
+  tab_agents = lv_tabview_add_tab(tabview, "Agents");
+
+  // 4. Add the "System" tab
   lv_obj_t *tab_system = lv_tabview_add_tab(tabview, "System");
 
   // --- SYSTEM TAB CONTENT ---
